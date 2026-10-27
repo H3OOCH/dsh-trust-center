@@ -30,11 +30,19 @@ Trust Center 把这些信号变成可读、可截图、可导出的证据列表�
 
 ## 安装
 
-从 npm 安装到 Web profile：
+当前发布通道是 GitHub。安装到 Web profile：
 
 ```bash
-dsh plugin --profile web add dsh-trust-center
+dsh plugin --profile web add github:H3OOCH/dsh-trust-center
 ```
+
+需要固定版本时，可改用 tag：
+
+```bash
+dsh plugin --profile web add github:H3OOCH/dsh-trust-center#v0.1.0
+```
+
+> npm 包名 `dsh-trust-center` 已保留，但正式版本仍在 staged review，尚未公开。当前请不要运行 `dsh plugin add dsh-trust-center`，否则会拿到 npm 的临时占位包。
 
 重启 DSH Web，左侧栏会出现 **信任中心 / Trust Center** 图标。
 
