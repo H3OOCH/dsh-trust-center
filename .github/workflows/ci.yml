@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test Node ${{ matrix.node }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [22, 24]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Test
+        run: npm test
+
+      - name: Check manifest and package contract
+        run: npm run check
+
+      - name: Verify publish contents
+        run: npm pack --dry-run
+
+  package-install:
+    name: Install packed tarball
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Pack
+        run: |
+          mkdir -p .artifacts
+          npm pack --pack-destination .artifacts
+
+      - name: Install and verify the packed package
+        shell: bash
+        run: |
+          TARBALL="$(ls .artifacts/*.tgz)"
+          npm install --prefix .smoke "$PWD/$TARBALL" --ignore-scripts --no-audit --no-fund
+          node - <<'NODE'
+          const fs = require('node:fs')
+          const path = require('node:path')
+          const root = path.join('.smoke', 'node_modules', 'dsh-trust-center')
+          const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
+          if (pkg.name !== 'dsh-trust-center') throw new Error('unexpected package name')
+          for (const file of ['src/plugin.js', 'src/ui/client.js', 'cordis.patch.yml']) {
+            if (!fs.existsSync(path.join(root, file))) throw new Error(`missing ${file}`)
+          }
+          if (pkg.dsh?.client?.platform !== 'web') throw new Error('missing web client metadata')
+          console.log(`verified ${pkg.name}@${pkg.version}`)
+          NODE

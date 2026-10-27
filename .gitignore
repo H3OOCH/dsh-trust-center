@@ -6,3 +6,5 @@ coverage/
 Thumbs.db
 .trust-ref/
 .npm-cache/
+.artifacts/
+.smoke/
