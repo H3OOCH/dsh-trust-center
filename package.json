@@ -1,0 +1,86 @@
+{
+  "name": "dsh-trust-center",
+  "version": "0.1.0",
+  "description": "Read-only trust audit for MCP tools and Skills in DeepSeek Harness: prompt-injection signals, hidden Unicode, dangerous capabilities, schema bloat, and context cost, with an in-Web Trust Center panel.",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "mcp",
+    "skills",
+    "security",
+    "trust",
+    "prompt-injection",
+    "audit",
+    "doctor"
+  ],
+  "type": "module",
+  "main": "./src/plugin.js",
+  "exports": {
+    ".": "./src/plugin.js",
+    "./client": "./src/ui/client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/",
+    "scripts/",
+    "locale/*.json",
+    "icon.svg",
+    "cordis.patch.yml",
+    "README.md",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.0.0",
+    "dsh": ">=0.2.1-rc.2 <0.3.0-0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-host-webserver": ">=0.2.1-rc.2 <0.3.0-0",
+    "@deepseek-ai/dsh-skill": ">=0.2.1-rc.2 <0.3.0-0",
+    "@deepseek-ai/dsh-tools": ">=0.2.1-rc.2 <0.3.0-0"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-host-webserver": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-skill": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-tools": {
+      "optional": true
+    }
+  },
+  "scripts": {
+    "test": "node test/run.js",
+    "check": "node scripts/check.js"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/H3OOCH/dsh-trust-center.git"
+  },
+  "homepage": "https://github.com/H3OOCH/dsh-trust-center#readme",
+  "bugs": {
+    "url": "https://github.com/H3OOCH/dsh-trust-center/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

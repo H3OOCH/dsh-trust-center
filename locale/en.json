@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Trust Center",
+    "description": "Audit the MCP tools and Skills your agent is about to trust. Finds prompt-injection signals, hidden Unicode, dangerous capabilities, schema bloat, and context cost without changing any content."
+  }
+}

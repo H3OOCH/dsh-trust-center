@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Trust Center">
+  <defs>
+    <linearGradient id="shield" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2f81f7"/>
+      <stop offset="1" stop-color="#1f4f9a"/>
+    </linearGradient>
+  </defs>
+  <path d="M32 5 53 13v17c0 13-8.2 23-21 29C19.2 53 11 43 11 30V13Z" fill="url(#shield)"/>
+  <path d="M32 10.5 48 17v13.4c0 10.4-6.5 18.7-16 24-9.5-5.3-16-13.6-16-24V17Z" fill="none" stroke="#dceaff" stroke-width="2" opacity=".65"/>
+  <circle cx="30" cy="29" r="8.5" fill="none" stroke="#fff" stroke-width="3"/>
+  <path d="m36.4 35.4 8.1 8.1" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+  <path d="m26.5 29 2.5 2.6 5-5.3" fill="none" stroke="#dceaff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

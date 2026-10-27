@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "信任中心",
+    "description": "审计 Agent 即将信任的 MCP 工具与 Skills：提示注入信号、隐藏 Unicode、危险能力、Schema 膨胀与上下文成本；只读检查，不修改任何内容。"
+  }
+}
