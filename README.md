@@ -1,6 +1,8 @@
 # DSH Trust Center
 
 [![CI](https://github.com/H3OOCH/dsh-trust-center/actions/workflows/ci.yml/badge.svg)](https://github.com/H3OOCH/dsh-trust-center/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/dsh-trust-center.svg)](https://www.npmjs.com/package/dsh-trust-center)
+[![dshfind](https://dshfind.com/api/badge/H3OOCH/dsh-trust-center?lang=zh)](https://dshfind.com/zh/plugins/H3OOCH/dsh-trust-center)
 
 **审计模型即将信任的外部文本：MCP 工具与 Skills。**
 
