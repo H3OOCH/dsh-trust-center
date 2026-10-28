@@ -1,0 +1,59 @@
+name: False positive / missed signal
+description: A rule fired incorrectly, or a real signal was missed.
+title: "[Signal]: "
+labels: ["false-positive"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not paste real credentials or a full private Skill body. A short redacted excerpt is enough.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What happened?
+      options:
+        - False positive (rule fired when it should not)
+        - Missed signal (rule should have fired)
+        - Wrong severity
+    validations:
+      required: true
+  - type: input
+    id: rule
+    attributes:
+      label: Rule ID, if known
+      placeholder: "hidden-unicode / prompt-injection-override / ..."
+  - type: input
+    id: surface
+    attributes:
+      label: Surface
+      placeholder: "MCP tool description / Schema / Skill body"
+    validations:
+      required: true
+  - type: textarea
+    id: excerpt
+    attributes:
+      label: Redacted excerpt
+      description: Keep the smallest context that explains the signal.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why is this expected or unexpected?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: dsh-trust-center version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I removed secrets, private paths, and full private Skill bodies.
+          required: true

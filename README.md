@@ -1,5 +1,7 @@
 # DSH Trust Center
 
+[![CI](https://github.com/H3OOCH/dsh-trust-center/actions/workflows/ci.yml/badge.svg)](https://github.com/H3OOCH/dsh-trust-center/actions/workflows/ci.yml)
+
 **审计模型即将信任的外部文本：MCP 工具与 Skills。**
 
 DSH Trust Center 是 DeepSeek Harness（DSH）的一个只读信任审计插件。它不管理插件安装，也不做启动恢复；它检查另一类更容易被忽略的攻击面：
@@ -30,23 +32,20 @@ Trust Center 把这些信号变成可读、可截图、可导出的证据列表�
 
 ## 安装
 
-从 npm 安装到 Web profile：
+从 npm 安装当前正式版（0.1.0）：
 
 ```bash
 dsh plugin --profile web add dsh-trust-center
 ```
 
-需要固定版本时：
+> npm 最新仍是 **0.1.0**；本 README 中的 tool fingerprint / baseline 功能目前在
+> GitHub `main`，尚未发布到 npm。想先使用这些功能，请从 GitHub 安装：
 
 ```bash
-dsh plugin --profile web add dsh-trust-center@0.1.0
+dsh plugin --profile web add github:H3OOCH/dsh-trust-center
 ```
 
-如果 npm 不可用，也可以直接从 GitHub 安装：
-
-```bash
-dsh plugin --profile web add github:H3OOCH/dsh-trust-center#v0.1.0
-```
+`v0.1.0` tag 是旧的 npm 对应版本，不包含 drift / baseline，不要把它当成最新功能。
 
 > npm 上存在一个 `0.0.0-stage` 占位版本，但 `latest` 已经是 0.1.0；正常安装会拿到正式版本。不要手工指定 `@0.0.0-stage`。
 
@@ -177,6 +176,26 @@ node scripts/check.js
 - profile baseline 文件、hash-only 校验、原子写入与 POST 路由限制；
 - loopback 快照 GET 限制与显式 baseline POST 限制；
 - 插件注册、Agent 工具和 Client 槽位注册。
+
+## 测试用 MCP
+
+建议按风险从低到高：
+
+1. **Sequential Thinking**：没有文件/网络副作用，最适合验证 MCP 面板和内存基线；
+2. **Filesystem**：只指向一个空的临时目录，验证 write capability 和 `readOnlyHint` 只是声明；
+3. **Git**：只指向一个可丢弃的仓库，验证只读工具和 Schema。
+
+不要用 home 目录、真实项目、真实凭据或生产数据库做第一次测试。
+完整建议、drift 测试方法和安全注意事项见 [testing-mcp.md](docs/testing-mcp.md)。
+
+## 文档与社区
+
+- [规则目录](docs/rules.md)
+- [合成 MCP 案例](docs/case-study.md)
+- [测试用 MCP 建议](docs/testing-mcp.md)
+- [贡献指南](CONTRIBUTING.md)
+- [安全问题](SECURITY.md)
+- [Issues / 讨论](https://github.com/H3OOCH/dsh-trust-center/issues)
 
 ## License
 

@@ -1,0 +1,58 @@
+name: Compatibility / installation
+description: DSH version, installation, route, or UI compatibility problem.
+title: "[Compat]: "
+labels: ["compatibility"]
+body:
+  - type: input
+    id: dsh-version
+    attributes:
+      label: DSH version
+      placeholder: "0.2.1-rc.2"
+    validations:
+      required: true
+  - type: input
+    id: plugin-version
+    attributes:
+      label: dsh-trust-center version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: Installation method
+      options:
+        - npm
+        - GitHub
+        - local link
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS
+      placeholder: "Windows 11 / macOS 15 / Ubuntu 24.04"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What fails?
+      description: Include the exact route/status or console error, with secrets removed.
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant profile/config shape
+      description: Do not paste credentials.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I tested with the latest published release or current main.
+          required: true
+        - label: I removed credentials and private data.
+          required: true
