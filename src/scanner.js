@@ -38,6 +38,11 @@ export const LIMITATIONS = Object.freeze([
     en: 'MCP server instructions, transports, and connection state are not exposed through the public tool interface; this audit covers registered tool descriptions and schemas only.',
   },
   {
+    code: 'annotations-are-claims',
+    zh: 'MCP annotations（如 readOnlyHint、destructiveHint）由服务器自行声明，不是运行时验证结果，不能作为安全证据。',
+    en: 'MCP annotations such as readOnlyHint and destructiveHint are declared by the server, not runtime-verified evidence.',
+  },
+  {
     code: 'skill-scope',
     zh: 'Skills 会按已注册工作区扫描；未被工作区注册的项目目录不在结果中。',
     en: 'Skills are scanned for registered workspaces; project directories not registered as workspaces are not included.',
