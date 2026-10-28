@@ -61,12 +61,12 @@ jobs:
         shell: bash
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          for attempt in 1 2 3 4 5 6; do
+          for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24; do
             if npm view "dsh-trust-center@$VERSION" version; then
               exit 0
             fi
             echo "Registry not ready for $VERSION (attempt $attempt); retrying..." >&2
-            sleep 5
+            sleep 10
           done
           echo "Registry did not expose dsh-trust-center@$VERSION after retries" >&2
           exit 1
