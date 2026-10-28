@@ -93,6 +93,12 @@ window.__ModuleLoader__.load({
       privacyTitle: '隐私与只读边界',
       privacy: '报告只包含计数器、来源标识和有界文本片段。完整 Skill 正文不会发送到浏览器；本插件不会自动禁用 MCP 服务器或 Skill。',
       heuristics: '启发式审计：风险分只用于排序注意力，不是安全认证，也不保证未被标记的内容是安全的。',
+      driftTitle: '工具指纹变化',
+      driftMemory: '仅内存基线：本次 Host 启动后首次扫描建立，重启后重置。',
+      driftChanged: '{n} 个工具内容变化',
+      driftAdded: '{n} 个新工具',
+      driftRemoved: '{n} 个工具消失',
+      driftReview: '服务器可能在审查后更改了 tools/list；请重新检查描述与 Schema。',
       truncated: '结果已截断；请查看扫描告警或提高限制。',
       gradeA: '低信号',
       gradeB: '需留意',
@@ -174,6 +180,12 @@ window.__ModuleLoader__.load({
       privacyTitle: 'Privacy & read-only boundary',
       privacy: 'The report contains counters, provenance identifiers, and bounded text excerpts. Full Skill bodies never reach the browser; this plugin never disables an MCP server or Skill automatically.',
       heuristics: 'Heuristic review: the risk score ranks attention, not security certification, and does not prove unflagged content safe.',
+      driftTitle: 'Tool fingerprint changed',
+      driftMemory: 'In-memory baseline only: recorded on the first scan after this Host started; resets on restart.',
+      driftChanged: '{n} changed tools',
+      driftAdded: '{n} new tools',
+      driftRemoved: '{n} removed tools',
+      driftReview: 'The server may have changed tools/list after review; inspect the current descriptions and schemas again.',
       truncated: 'Results are truncated; see scan warnings or raise the limit.',
       gradeA: 'Low signal',
       gradeB: 'Review',
@@ -542,6 +554,32 @@ window.__ModuleLoader__.load({
       ])
     }
 
+    function DriftNotice({ drift, t }) {
+      if (!drift || drift.status !== 'changed') return null
+      const changed = drift.changed?.length ?? 0
+      const added = drift.added?.length ?? 0
+      const removed = drift.removed?.length ?? 0
+      const names = [...(drift.changed ?? []), ...(drift.added ?? [])]
+        .map((item) => `${item.server}/${item.name}`)
+        .slice(0, 3)
+      return h('div', {
+        style: { ...card, marginTop: 10, padding: '12px 14px', borderColor: COLORS.medium, background: COLORS.base },
+      }, [
+        h('div', { key: 'head', style: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' } }, [
+          h('strong', { key: 't', style: { fontSize: 12.5 } }, t('driftTitle')),
+          h('span', { key: 'm', style: { fontSize: 10.5, color: COLORS.muted } }, t('driftMemory')),
+        ]),
+        h('div', { key: 'counts', style: { marginTop: 4, fontSize: 11.5, color: COLORS.text } },
+          [
+            changed > 0 ? fill(t('driftChanged'), { n: changed }) : null,
+            added > 0 ? fill(t('driftAdded'), { n: added }) : null,
+            removed > 0 ? fill(t('driftRemoved'), { n: removed }) : null,
+          ].filter(Boolean).join(' · ')),
+        names.length > 0 ? h('div', { key: 'names', style: { marginTop: 3, fontSize: 10.5, color: COLORS.muted, overflowWrap: 'anywhere' } }, names.join(' · ')) : null,
+        h('div', { key: 'hint', style: { marginTop: 4, fontSize: 10.5, color: COLORS.muted, lineHeight: 1.5 } }, t('driftReview')),
+      ])
+    }
+
     function TrustPage({ ctx }) {
       const t = React.useMemo(() => ctx.locale.bind(NS), [ctx])
       const lang = useLocaleId(ctx)
@@ -657,6 +695,8 @@ window.__ModuleLoader__.load({
               alignItems: 'flex-start',
             },
           }, [h('span', { key: 'i', style: { color: COLORS.medium } }, '◆'), h('span', { key: 't' }, t('heuristics'))]),
+
+          h(DriftNotice, { key: 'drift', drift: data.drift, t }),
 
           h(Coverage, { key: 'coverage', data, t }),
 

@@ -10,14 +10,16 @@
  */
 
 import { formatReportZh, scanHarness } from './scanner.js'
+import { createDriftTracker } from './fingerprint.js'
 import { registerStatusRoute, invalidateStatus } from './status.js'
 
 export const name = 'trust-center'
 export const inject = []
 
 export function apply(ctx) {
+  const driftTracker = createDriftTracker()
   try {
-    registerStatusRoute(ctx)
+    registerStatusRoute(ctx, driftTracker)
     ctx.on?.('tools/change', () => invalidateStatus())
     ctx.on?.('skills/change', () => invalidateStatus())
   } catch (error) {
@@ -26,7 +28,7 @@ export function apply(ctx) {
 
   try {
     ctx.inject?.(['tools'], (toolsCtx) => {
-      registerTool(toolsCtx)
+      registerTool(toolsCtx, driftTracker)
     })
   } catch (error) {
     safeLog(ctx, 'warn', `[dsh-trust-center] agent tool unavailable: ${messageOf(error)}`)
@@ -36,7 +38,7 @@ export function apply(ctx) {
   return undefined
 }
 
-function registerTool(ctx) {
+function registerTool(ctx, driftTracker) {
   if (typeof ctx.tools?.register !== 'function') return
   try {
     ctx.tools.register({
@@ -58,7 +60,7 @@ function registerTool(ctx) {
         render: (_args, value) => [{ type: 'text', text: value }],
       },
       async execute(args = {}) {
-        const report = await scanHarness(ctx)
+        const report = await scanHarness(ctx, { driftTracker })
         return args.format === 'json' ? JSON.stringify(report, null, 2) : formatReportZh(report)
       },
     })

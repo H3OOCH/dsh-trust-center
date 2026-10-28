@@ -1,8 +1,20 @@
 # Tool fingerprint / drift baseline — design note
 
-Status: design only. No baseline persistence is implemented in 0.1.x.
-This note records the feedback from Discussion #11209 and the decisions that
-need confirmation before the read-only boundary changes.
+Status: A (memory-only) is implemented in the working tree. B/C remain design
+only. This note records the feedback from Discussion #11209 and the decisions
+that need confirmation before the read-only boundary changes.
+
+## Implementation status
+
+- A: `src/fingerprint.js` computes SHA-256 fingerprints; `scanHarness()` compares
+  them with an in-memory tracker created by the Host plugin. The baseline is
+  recorded on the first scan and kept for the lifetime of the Host process.
+  There are no file writes. The panel shows a drift notice; the agent report
+  and JSON include the drift object.
+- B: opt-in persistent baseline is not implemented.
+- C: host-provided storage has not been investigated yet.
+- Annotations are excluded from the trust identity and the report now states
+  that `readOnlyHint` / `destructiveHint` are server-declared claims.
 
 ## Problem
 
@@ -85,12 +97,13 @@ Minimum metadata per tool:
 
 ## Persistence options
 
-### A. In-memory only (lowest risk)
+### A. In-memory only (implemented)
 
 - Baseline lives for the lifetime of the Host process.
 - Detects changes within one session; resets on restart.
 - No writes; no opt-in required.
-- Suitable as the first incremental step.
+- The first observation is retained; a changed surface stays visible on every
+  refresh until the Host restarts. There is no "accept new baseline" action yet.
 
 ### B. Opt-in profile baseline file (recommended for persistence)
 

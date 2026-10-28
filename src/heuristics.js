@@ -208,6 +208,48 @@ const RULE_COPY = Object.freeze({
       recommendation: 'Enable only the tools this task needs, or split the server into smaller capability groups.',
     },
   },
+  'tool-fingerprint-changed': {
+    category: 'drift',
+    severity: 'medium',
+    zh: {
+      title: '工具指纹与内存基线不一致',
+      detail: '该 MCP 工具的名称、描述或 Schema 与本次 Host 启动后首次观察到的内容不同。服务器可能在审查后改变 tools/list 响应。',
+      recommendation: '对比当前描述/Schema 与上次审查版本；确认变化合理后再继续使用该工具。此基线只在当前 Host 进程内有效。',
+    },
+    en: {
+      title: 'Tool fingerprint differs from the in-memory baseline',
+      detail: 'The tool name, description, or schema differs from the first observation in this Host process. A server may return a different tools/list response after review.',
+      recommendation: 'Compare the current description/schema with the reviewed version; only continue if the change is expected. This baseline lasts for the current Host process only.',
+    },
+  },
+  'tool-fingerprint-new': {
+    category: 'drift',
+    severity: 'low',
+    zh: {
+      title: '发现基线中没有的工具',
+      detail: '该 MCP 工具在本次 Host 会话首次扫描后出现，尚未经过审查。',
+      recommendation: '检查新工具的来源、描述和 Schema；确认是否需要启用。此基线只在当前 Host 进程内有效。',
+    },
+    en: {
+      title: 'Tool appeared after the in-memory baseline',
+      detail: 'This MCP tool appeared after the first scan in this Host session and has not been reviewed.',
+      recommendation: 'Review the new tool source, description, and schema before enabling it. This baseline lasts for the current Host process only.',
+    },
+  },
+  'tool-fingerprint-removed': {
+    category: 'drift',
+    severity: 'low',
+    zh: {
+      title: '基线中的工具已消失',
+      detail: '之前观察到的 MCP 工具在本次扫描中不存在。确认这是预期的服务器变更，而不是连接或配置问题。',
+      recommendation: '检查服务器连接和配置；如果工具被移除是预期行为，可以忽略此提示。',
+    },
+    en: {
+      title: 'Tool from the baseline disappeared',
+      detail: 'An MCP tool observed earlier is absent from this scan. Confirm this is an intended server change, not a connection or configuration problem.',
+      recommendation: 'Check the server connection and configuration; ignore this if the removal is expected.',
+    },
+  },
 })
 
 const PROMPT_PATTERNS = Object.freeze([
@@ -523,6 +565,31 @@ export function scanMcpTool(schema, index = 0) {
     },
     findings,
   }
+}
+
+/**
+ * Convert an in-memory drift result into review findings.
+ * @param {{changed?: Array, added?: Array, removed?: Array, status?: string}|undefined} drift
+ * @returns {Array<Record<string, any>>}
+ */
+export function driftFindings(drift) {
+  if (drift === undefined || drift.status !== 'changed') return []
+  const findings = []
+  const emit = (item, rule) => {
+    findings.push(makeFinding({
+      surface: 'mcp',
+      subject: `mcp:${item.server}:${item.name}`,
+      subjectType: 'mcp-tool',
+      server: item.server,
+      tool: item.name,
+      rule,
+      field: 'tool',
+    }))
+  }
+  for (const item of drift.changed ?? []) emit(item, 'tool-fingerprint-changed')
+  for (const item of drift.added ?? []) emit(item, 'tool-fingerprint-new')
+  for (const item of drift.removed ?? []) emit(item, 'tool-fingerprint-removed')
+  return findings
 }
 
 /**

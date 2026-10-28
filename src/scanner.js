@@ -10,6 +10,7 @@
 import {
   MAX_FINDINGS,
   MAX_SCAN_CHARS,
+  driftFindings,
   finalizeFindings,
   parseMcpToolName,
   scanMcpServer,
@@ -17,6 +18,7 @@ import {
   scanSkill,
   summarizeFindings,
 } from './heuristics.js'
+import { fingerprintTools } from './fingerprint.js'
 import { displayPath, estimateTokens, truncate, utf8Bytes } from './util.js'
 
 export const PRODUCT = 'dsh-trust-center'
@@ -58,7 +60,7 @@ export const LIMITATIONS = Object.freeze([
  * Collect and score the active MCP/Skill surfaces.
  *
  * @param {object} ctx - Host Cordis context.
- * @param {{now?: number, maxSkills?: number, maxMcpTools?: number, timeoutMs?: number}} [options]
+ * @param {{now?: number, maxSkills?: number, maxMcpTools?: number, timeoutMs?: number, driftTracker?: {observe: Function}}} [options]
  * @returns {Promise<Record<string, any>>}
  */
 export async function scanHarness(ctx, {
@@ -66,6 +68,7 @@ export async function scanHarness(ctx, {
   maxSkills = DEFAULT_SKILL_LIMIT,
   maxMcpTools = DEFAULT_MCP_LIMIT,
   timeoutMs = DEFAULT_TIMEOUT_MS,
+  driftTracker,
 } = {}) {
   const started = now
   const warnings = []
@@ -98,6 +101,15 @@ export async function scanHarness(ctx, {
   }
 
   const mcpResults = mcpSchemas.map((schema, index) => scanMcpTool(schema, index))
+  let drift = null
+  if (driftTracker !== undefined && typeof driftTracker?.observe === 'function') {
+    try {
+      drift = driftTracker.observe(fingerprintTools(mcpSchemas), now)
+      findings.push(...driftFindings(drift))
+    } catch (error) {
+      warnings.push(warn('drift-scan-failed', errorText(error)))
+    }
+  }
   const servers = new Map()
   for (const result of mcpResults) {
     findings.push(...result.findings)
@@ -239,6 +251,7 @@ export async function scanHarness(ctx, {
           .map((cwd) => displayPath(cwd)),
       },
     },
+    drift,
     mcp: {
       servers: [...servers.values()]
         .map((server) => ({
@@ -302,6 +315,9 @@ export function formatReportZh(report) {
       lines.push(`- [${finding.severity.toUpperCase()}] ${where} · ${finding.titleZh}${evidence ? ` @${evidence.field}${evidence.line === undefined ? '' : `:${evidence.line}`}` : ''}`)
     }
     if (report.findings.length > 18) lines.push(`- …另有 ${report.findings.length - 18} 条，请在 Trust Center 面板查看。`)
+  }
+  if (report.drift?.status === 'changed') {
+    lines.push('', `工具指纹变化（仅内存基线）：${report.drift.changed?.length ?? 0} 个变更 · ${report.drift.added?.length ?? 0} 个新增 · ${report.drift.removed?.length ?? 0} 个移除。重启 Host 后基线会重置。`)
   }
   lines.push('', '覆盖范围与限制：')
   for (const limitation of report.limitations) lines.push(`- ${limitation.zh}`)

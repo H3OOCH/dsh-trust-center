@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
-import { scanHarness } from '../src/scanner.js'
+import { createDriftTracker } from '../src/fingerprint.js'
+import { formatReportZh, scanHarness } from '../src/scanner.js'
 
 const fixtureUrl = new URL('./fixtures/mcp-tools-list.json', import.meta.url)
 
@@ -45,4 +46,22 @@ test('MCP tools/list fixture exercises the full Host-side scan path', async () =
   // capability or appear as independent evidence.
   assert.ok(report.limitations.some((limitation) => limitation.code === 'annotations-are-claims'))
   assert.ok(report.findings.every((finding) => finding.evidence.every((evidence) => !String(evidence.snippet).includes('readOnlyHint'))))
+})
+
+test('scanHarness reports a changed tool against the in-memory baseline', async () => {
+  const schemas = await loadFixtureSchemas()
+  const tracker = createDriftTracker()
+  const ctx = { get: (name) => name === 'tools' ? { schemas: () => schemas } : undefined }
+
+  const first = await scanHarness(ctx, { driftTracker: tracker, now: 1_700_000_000_000 })
+  assert.equal(first.drift.status, 'baseline-created')
+  assert.equal(first.findings.some((finding) => finding.rule === 'tool-fingerprint-changed'), false)
+
+  schemas[0] = { ...schemas[0], description: `${schemas[0].description} changed after review` }
+  const second = await scanHarness(ctx, { driftTracker: tracker, now: 1_700_000_001_000 })
+  assert.equal(second.drift.status, 'changed')
+  assert.equal(second.drift.changed.length, 1)
+  assert.equal(second.drift.changed[0].name, 'search_docs')
+  assert.ok(second.findings.some((finding) => finding.rule === 'tool-fingerprint-changed'))
+  assert.match(formatReportZh(second), /工具指纹变化/)
 })

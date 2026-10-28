@@ -16,21 +16,22 @@ let cache
 /**
  * Build a fresh report.
  * @param {object} ctx
+ * @param {{observe: Function}|undefined} [driftTracker]
  * @returns {Promise<Record<string, any>>}
  */
-export async function buildStatus(ctx) {
-  return scanHarness(ctx)
+export async function buildStatus(ctx, driftTracker) {
+  return scanHarness(ctx, { driftTracker })
 }
 
 /**
  * Return the latest snapshot or a refreshed one.
  * @param {object} ctx
- * @param {{refresh?: boolean, ttlMs?: number, now?: number}} [options]
+ * @param {{refresh?: boolean, ttlMs?: number, now?: number, driftTracker?: {observe: Function}}} [options]
  * @returns {Promise<Record<string, any>>}
  */
-export async function cachedStatus(ctx, { refresh = false, ttlMs = CACHE_TTL_MS, now = Date.now() } = {}) {
+export async function cachedStatus(ctx, { refresh = false, ttlMs = CACHE_TTL_MS, now = Date.now(), driftTracker } = {}) {
   if (!refresh && cache !== undefined && now - cache.at < ttlMs) return cache.value
-  const value = await buildStatus(ctx)
+  const value = await buildStatus(ctx, driftTracker)
   cache = { at: now, value }
   return value
 }
@@ -43,15 +44,16 @@ export function invalidateStatus() {
 /**
  * Mount the status route when the host has a web server.
  * @param {object} ctx - Host Cordis context.
+ * @param {{observe: Function}|undefined} [driftTracker]
  * @returns {void}
  */
-export function registerStatusRoute(ctx) {
+export function registerStatusRoute(ctx, driftTracker) {
   ctx.inject(['webServer'], (webCtx) => {
     webCtx.effect(() => {
       const dispose = webCtx.webServer.register({
         kind: 'exact',
         path: STATUS_PATH,
-        handler: createStatusHandler((options) => cachedStatus(ctx, options)),
+        handler: createStatusHandler((options) => cachedStatus(ctx, { ...options, driftTracker })),
       })
       return () => dispose()
     }, 'dsh-trust-center: status route')
