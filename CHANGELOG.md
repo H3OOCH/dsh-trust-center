@@ -1,13 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 — 2026-10-28
 
 ### Added
 
 - In-memory MCP tool fingerprints and changed/new/removed drift signals;
 - Optional profile baseline file, written only by an explicit loopback action;
 - `annotations-are-claims` limitation and tests for `readOnlyHint`;
-- Protocol-shaped MCP `tools/list` fixture and Host-path integration tests.
+- Protocol-shaped MCP `tools/list` fixture and Host-path integration tests;
+- Contributor guide, rule catalog, case study, MCP testing guide, and issue forms.
 
 ## 0.1.0 — 2026-10-27
 

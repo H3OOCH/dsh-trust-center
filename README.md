@@ -39,7 +39,7 @@ dsh plugin --profile web add dsh-trust-center
 ```
 
 > npm 最新仍是 **0.1.0**；本 README 中的 tool fingerprint / baseline 功能目前在
-> GitHub `main`，尚未发布到 npm。想先使用这些功能，请从 GitHub 安装：
+> GitHub `main`，版本为 **0.2.0（尚未发布到 npm）**。想先使用这些功能，请从 GitHub 安装：
 
 ```bash
 dsh plugin --profile web add github:H3OOCH/dsh-trust-center

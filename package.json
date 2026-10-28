@@ -1,6 +1,6 @@
 {
   "name": "dsh-trust-center",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Read-only trust audit for MCP tools and Skills in DeepSeek Harness: prompt-injection signals, hidden Unicode, dangerous capabilities, schema bloat, and context cost, with an in-Web Trust Center panel.",
   "keywords": [
     "dsh",
