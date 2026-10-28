@@ -123,17 +123,35 @@ high × 18 + medium × 7 + low × 2
 
 上限 100。A（0–9）、B（10–29）、C（30–59）、D（60+）。它不是概率，也不是安全评级。
 
+## 工具指纹与基线
+
+MCP 服务器可能在审查后返回不同的 `tools/list`。插件会为每个工具计算一个 SHA-256 指纹（服务器名、工具名、描述、Schema），并标记 `changed` / `new` / `removed`。
+
+- 默认是**内存基线**：只在当前 Host 进程内有效，重启后重置；
+- 点击 **记录当前基线** 后，才会写入当前 profile 的 hash-only 文件：
+
+```text
+<DSH_PROFILE_DIR>/trust-center/baseline.json
+```
+
+- 文件只包含服务器名、工具名、SHA-256 和 first-seen 时间；不包含描述、Schema、annotations 或工具输出；
+- 已有文件时，出现变化后需显式点击 **接受当前状态** 才会更新；
+- 扫描本身永远不写文件。
+
 ## 隐私与安全
 
-- **只读**：不修改 MCP 配置、Skill 文件、profile 或会话。
+- **审计只读**：不修改 MCP 配置、Skill 文件、会话或来源内容。
+- **可选基线写入**：只有你显式点击“记录当前基线/接受当前状态”时，才写入当前 profile 的 `<DSH_PROFILE_DIR>/trust-center/baseline.json`；文件是 hash-only 的。
 - **本机读取**：Host 侧读取当前运行时已经暴露的工具 schema 和 Skill 内容；不联网上传。
 - **最小化外发**：浏览器只收到计数、来源标识和有界证据片段；完整 Skill 正文不发送到浏览器。
-- **Loopback only**：快照路由只接受 loopback Host 和 loopback peer；GET-only；无 CORS；`no-store`。
+- **Loopback only**：快照路由只接受 loopback Host 和 loopback peer，GET-only；基线写入路由也只接受 loopback POST；均无 CORS、`no-store`。
 - **无第三方运行时依赖**：包本身不依赖 npm 运行时库。
 
 ## 已知限制
 
 - MCP 服务器的 **instructions**、transport 和连接状态没有通过公开工具 API 暴露；本插件只能审计已注册工具的描述和 Schema。
+- MCP annotations（如 `readOnlyHint`、`destructiveHint`）是服务器声明，不是运行时验证证据。
+- 持久化基线只覆盖 MCP 工具，不覆盖 Skills；它记录的是观察到的指纹，不是服务器实际行为。
 - 一个 MCP 服务器如果没有任何已注册工具，本插件看不到它。
 - Skill 扫描覆盖已注册工作区；未被工作区注册的项目目录不在结果中。
 - 规则是启发式的，可能误报或漏报。请把结果当作复查起点，不要把它当作放行/拦截依据。
@@ -154,7 +172,10 @@ node scripts/check.js
 - 正常长 Skill 不误报；
 - 已注册工作区聚合与全局 Skill 去重；
 - Host 报告聚合、服务缺失降级；
-- loopback 路由和 GET-only 限制；
+- MCP `tools/list` fixture、Prompt/隐藏字符/宽 Schema 集成检测；
+- tool fingerprint、changed/new/removed 与内存基线；
+- profile baseline 文件、hash-only 校验、原子写入与 POST 路由限制；
+- loopback 快照 GET 限制与显式 baseline POST 限制；
 - 插件注册、Agent 工具和 Client 槽位注册。
 
 ## License

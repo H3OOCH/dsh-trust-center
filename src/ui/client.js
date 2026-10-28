@@ -13,6 +13,7 @@ window.__ModuleLoader__.load({
     const h = React.createElement
 
     const STATUS_PATH = '/plugins/dsh-trust-center/status'
+    const BASELINE_PATH = '/plugins/dsh-trust-center/baseline'
     const NS = 'dsh-trust-center'
 
     const COLORS = {
@@ -33,7 +34,7 @@ window.__ModuleLoader__.load({
     const ZH = {
       nav: '信任中心',
       title: '信任中心',
-      subtitle: '审计模型即将信任的外部文本：MCP 工具描述与 Schema、Skills 正文。只读，不改动任何来源。',
+      subtitle: '审计模型即将信任的外部文本：MCP 工具描述与 Schema、Skills 正文。审计只读；工具基线需显式记录。',
       refresh: '重新扫描',
       scanning: '扫描中…',
       loading: '正在读取当前 MCP 工具与 Skills…',
@@ -91,7 +92,7 @@ window.__ModuleLoader__.load({
       limitations: '边界与限制',
       warnings: '扫描告警',
       privacyTitle: '隐私与只读边界',
-      privacy: '报告只包含计数器、来源标识和有界文本片段。完整 Skill 正文不会发送到浏览器；本插件不会自动禁用 MCP 服务器或 Skill。',
+      privacy: '报告只包含计数器、来源标识和有界文本片段。完整 Skill 正文不会发送到浏览器；本插件不会自动禁用 MCP 服务器或 Skill。只有显式记录基线时才会写入 hash-only profile 文件。',
       heuristics: '启发式审计：风险分只用于排序注意力，不是安全认证，也不保证未被标记的内容是安全的。',
       driftTitle: '工具指纹变化',
       driftMemory: '仅内存基线：本次 Host 启动后首次扫描建立，重启后重置。',
@@ -99,6 +100,15 @@ window.__ModuleLoader__.load({
       driftAdded: '{n} 个新工具',
       driftRemoved: '{n} 个工具消失',
       driftReview: '服务器可能在审查后更改了 tools/list；请重新检查描述与 Schema。',
+      baselineTitle: '工具基线',
+      baselineFile: '已保存到当前 profile；只包含服务器名、工具名和 SHA-256。',
+      baselineMemory: '仅内存基线；不会跨重启保存。点击记录后才写入 profile 文件。',
+      baselineRecord: '记录当前基线',
+      baselineAccept: '接受当前状态',
+      baselineReRecord: '重新记录基线',
+      baselineEmpty: '没有可记录的 MCP 工具。',
+      baselineFailed: '记录基线失败',
+      baselineWrite: '只写入 hash-only 文件；扫描本身不会写。',
       truncated: '结果已截断；请查看扫描告警或提高限制。',
       gradeA: '低信号',
       gradeB: '需留意',
@@ -120,7 +130,7 @@ window.__ModuleLoader__.load({
     const EN = {
       nav: 'Trust Center',
       title: 'Trust Center',
-      subtitle: 'Audit the external text your model is about to trust: MCP tool descriptions and schemas, and Skill bodies. Read-only; nothing is changed.',
+      subtitle: 'Audit the external text your model is about to trust: MCP tool descriptions and schemas, and Skill bodies. The audit is read-only; a tool baseline is recorded only on explicit action.',
       refresh: 'Scan again',
       scanning: 'Scanning…',
       loading: 'Reading the active MCP tools and Skills…',
@@ -178,7 +188,7 @@ window.__ModuleLoader__.load({
       limitations: 'Limits',
       warnings: 'Scan warnings',
       privacyTitle: 'Privacy & read-only boundary',
-      privacy: 'The report contains counters, provenance identifiers, and bounded text excerpts. Full Skill bodies never reach the browser; this plugin never disables an MCP server or Skill automatically.',
+      privacy: 'The report contains counters, provenance identifiers, and bounded text excerpts. Full Skill bodies never reach the browser; this plugin never disables an MCP server or Skill automatically. A hash-only profile file is written only when you explicitly record a baseline.',
       heuristics: 'Heuristic review: the risk score ranks attention, not security certification, and does not prove unflagged content safe.',
       driftTitle: 'Tool fingerprint changed',
       driftMemory: 'In-memory baseline only: recorded on the first scan after this Host started; resets on restart.',
@@ -186,6 +196,15 @@ window.__ModuleLoader__.load({
       driftAdded: '{n} new tools',
       driftRemoved: '{n} removed tools',
       driftReview: 'The server may have changed tools/list after review; inspect the current descriptions and schemas again.',
+      baselineTitle: 'Tool baseline',
+      baselineFile: 'Saved to this profile; contains only server names, tool names, and SHA-256.',
+      baselineMemory: 'In-memory baseline only; not retained across restarts. Click record to write a profile file.',
+      baselineRecord: 'Record current baseline',
+      baselineAccept: 'Accept current state',
+      baselineReRecord: 'Re-record baseline',
+      baselineEmpty: 'No MCP tools to record.',
+      baselineFailed: 'Could not record the baseline',
+      baselineWrite: 'Only a hash-only file is written; scanning itself never writes.',
       truncated: 'Results are truncated; see scan warnings or raise the limit.',
       gradeA: 'Low signal',
       gradeB: 'Review',
@@ -554,6 +573,32 @@ window.__ModuleLoader__.load({
       ])
     }
 
+    function BaselineBar({ drift, summary, t, busy, error, onRecord }) {
+      if (!drift) return null
+      const file = drift.mode === 'file'
+      const changed = drift.status === 'changed'
+      const canRecord = (summary?.mcpTools ?? 0) > 0
+      const label = file && changed
+        ? t('baselineAccept')
+        : file
+          ? t('baselineReRecord')
+          : t('baselineRecord')
+      return h('div', {
+        style: { ...card, marginTop: 10, padding: '12px 14px', borderColor: file ? COLORS.border : COLORS.medium, background: COLORS.base },
+      }, [
+        h('div', { key: 'head', style: { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' } }, [
+          h('strong', { key: 't', style: { fontSize: 12.5 } }, t('baselineTitle')),
+          h(Pill, { key: 'mode', tone: file ? COLORS.brand : COLORS.muted }, file ? 'profile file' : 'memory'),
+        ]),
+        h('div', { key: 'd', style: { marginTop: 4, fontSize: 11, color: COLORS.muted, lineHeight: 1.5 } }, file ? t('baselineFile') : t('baselineMemory')),
+        h('div', { key: 'w', style: { marginTop: 2, fontSize: 10.5, color: COLORS.muted, lineHeight: 1.5 } }, t('baselineWrite')),
+        drift.warning ? h('div', { key: 'warn', style: { marginTop: 5, fontSize: 10.5, color: COLORS.medium, lineHeight: 1.5 } }, drift.warning) : null,
+        !canRecord ? h('div', { key: 'empty', style: { marginTop: 5, fontSize: 10.5, color: COLORS.muted } }, t('baselineEmpty')) : null,
+        error ? h('div', { key: 'err', style: { marginTop: 5, fontSize: 10.5, color: COLORS.high } }, `${t('baselineFailed')}: ${error}`) : null,
+        canRecord ? h('div', { key: 'action', style: { marginTop: 9 } }, h(Button, { onClick: onRecord, busy, primary: !file }, label)) : null,
+      ])
+    }
+
     function DriftNotice({ drift, t }) {
       if (!drift || drift.status !== 'changed') return null
       const changed = drift.changed?.length ?? 0
@@ -586,6 +631,8 @@ window.__ModuleLoader__.load({
       const { loading, error, data, refresh } = useReport()
       const [tab, setTab] = React.useState('overview')
       const [busy, setBusy] = React.useState(false)
+      const [baselineBusy, setBaselineBusy] = React.useState(false)
+      const [baselineError, setBaselineError] = React.useState('')
       const summary = data?.summary
       const findings = data?.findings ?? []
       const tone = summary ? toneForScore(summary.riskScore) : COLORS.muted
@@ -594,6 +641,29 @@ window.__ModuleLoader__.load({
         setBusy(true)
         refresh()
         setTimeout(() => setBusy(false), 600)
+      }, [refresh])
+
+      const recordBaseline = React.useCallback(async () => {
+        setBaselineBusy(true)
+        setBaselineError('')
+        try {
+          const response = await fetch(BASELINE_PATH, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'content-type': 'application/json',
+              'x-trust-center-action': 'baseline',
+            },
+            body: JSON.stringify({ action: 'record' }),
+          })
+          const result = await response.json().catch(() => ({}))
+          if (!response.ok) throw new Error(result.error ?? `HTTP ${response.status}`)
+          refresh()
+        } catch (cause) {
+          setBaselineError(cause instanceof Error ? cause.message : String(cause))
+        } finally {
+          setBaselineBusy(false)
+        }
       }, [refresh])
 
       const tabs = [
@@ -697,6 +767,16 @@ window.__ModuleLoader__.load({
           }, [h('span', { key: 'i', style: { color: COLORS.medium } }, '◆'), h('span', { key: 't' }, t('heuristics'))]),
 
           h(DriftNotice, { key: 'drift', drift: data.drift, t }),
+
+          h(BaselineBar, {
+            key: 'baseline',
+            drift: data.drift,
+            summary,
+            t,
+            busy: baselineBusy,
+            error: baselineError,
+            onRecord: recordBaseline,
+          }),
 
           h(Coverage, { key: 'coverage', data, t }),
 

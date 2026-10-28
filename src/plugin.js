@@ -2,24 +2,28 @@
  * DSH Trust Center — Host half.
  *
  * Registers:
- * - a loopback-only read-only snapshot route for the Web panel;
+ * - a loopback-only snapshot route for the Web panel;
+ * - a loopback-only explicit baseline write route;
  * - an optional `trust_scan` agent tool when `tools` is mounted.
  *
- * No hard service injections are declared, so a composition without a web
- * server or tool registry still loads the plugin harmlessly.
+ * Scanning remains read-only. Only the explicit baseline action writes a
+ * profile-scoped, hash-only file.
  */
 
 import { formatReportZh, scanHarness } from './scanner.js'
 import { createDriftTracker } from './fingerprint.js'
-import { registerStatusRoute, invalidateStatus } from './status.js'
+import { createBaselineStore } from './baseline.js'
+import { registerBaselineRoute, registerStatusRoute, invalidateStatus } from './status.js'
 
 export const name = 'trust-center'
 export const inject = []
 
 export function apply(ctx) {
-  const driftTracker = createDriftTracker()
+  const baselineStore = createBaselineStore()
+  const driftTracker = createDriftTracker({ store: baselineStore })
   try {
     registerStatusRoute(ctx, driftTracker)
+    registerBaselineRoute(ctx, driftTracker, baselineStore)
     ctx.on?.('tools/change', () => invalidateStatus())
     ctx.on?.('skills/change', () => invalidateStatus())
   } catch (error) {

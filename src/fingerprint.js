@@ -71,34 +71,83 @@ export function fingerprintTools(schemas) {
 }
 
 /**
- * Memory-only baseline. First observation records the baseline; later
- * observations compare against it and then advance it.
+ * Collect fingerprints from a Host context, used by the explicit baseline
+ * write route. Missing tools is an error rather than an empty baseline.
+ * @param {object} ctx
+ * @returns {Array<Record<string, any>>}
+ */
+export function fingerprintsFromContext(ctx) {
+  const tools = ctx?.get?.('tools')
+  if (tools === undefined || typeof tools.schemas !== 'function') {
+    const error = new Error('The tools service is not available; cannot record a baseline.')
+    error.status = 503
+    throw error
+  }
+  const schemas = tools.schemas()
+  if (!Array.isArray(schemas)) {
+    const error = new Error('tools.schemas() did not return an array; cannot record a baseline.')
+    error.status = 500
+    throw error
+  }
+  return fingerprintTools(schemas)
+}
+
+/**
+ * Memory-only or optional profile-file baseline. First observation records the
+ * baseline; later observations compare against it and do not advance it.
+ * A profile-file baseline is read on first observation and is written only by
+ * an explicit `record()` call.
+ * @param {{store?: {read: Function, write: Function}}} [options]
  * @returns {{
  *   observe: (fingerprints: Array<Record<string, any>>, at?: number) => Record<string, any>,
+ *   record: (fingerprints: Array<Record<string, any>>, at?: number) => Record<string, any>,
  *   reset: () => void,
- *   mode: 'memory',
  * }}
  */
-export function createDriftTracker() {
+export function createDriftTracker({ store } = {}) {
   let baseline
   let baselineAt
+  let mode = 'memory'
+  let warning
+  let initialized = false
+
+  function loadStore() {
+    if (store === undefined) return
+    const loaded = store.read()
+    if (loaded.status === 'ok') {
+      baseline = new Map(loaded.data.tools.map((tool) => [
+        `${tool.server}\u0000${tool.name}`,
+        { key: `${tool.server}\u0000${tool.name}`, server: tool.server, name: tool.name, sha256: tool.sha256 },
+      ]))
+      baselineAt = loaded.data.createdAt || undefined
+      mode = 'file'
+      warning = undefined
+    } else if (loaded.status === 'invalid') {
+      warning = `Persistent baseline ignored: ${loaded.error}`
+      mode = 'memory'
+    }
+  }
 
   return {
-    mode: 'memory',
     observe(fingerprints, at = Date.now()) {
+      if (!initialized) {
+        initialized = true
+        loadStore()
+      }
       const current = new Map(fingerprints.map((fingerprint) => [fingerprint.key, fingerprint]))
       const observedAt = new Date(at).toISOString()
       if (baseline === undefined) {
         baseline = current
         baselineAt = observedAt
         return {
-          mode: 'memory',
+          mode,
           status: 'baseline-created',
           baselineAt,
           checked: current.size,
           changed: [],
           added: [],
           removed: [],
+          ...(warning === undefined ? {} : { warning }),
         }
       }
 
@@ -125,20 +174,47 @@ export function createDriftTracker() {
       }
       // Keep the first baseline for the lifetime of this process. A changed
       // surface should stay visible on every refresh; accepting a new baseline
-      // is a future, explicit action (not part of the in-memory version).
+      // is an explicit record() action.
       return {
-        mode: 'memory',
+        mode,
         status: changed.length > 0 || added.length > 0 || removed.length > 0 ? 'changed' : 'unchanged',
         baselineAt,
         checked: current.size,
         changed,
         added,
         removed,
+        ...(warning === undefined ? {} : { warning }),
+      }
+    },
+    record(fingerprints, at = Date.now()) {
+      if (store === undefined) {
+        const error = new Error('Persistent baseline storage is not available for this profile.')
+        error.status = 503
+        throw error
+      }
+      const result = store.write(fingerprints, { now: at })
+      baseline = new Map(fingerprints.map((fingerprint) => [fingerprint.key, fingerprint]))
+      baselineAt = result.createdAt
+      mode = 'file'
+      warning = undefined
+      initialized = true
+      return {
+        mode,
+        status: 'baseline-recorded',
+        baselineAt,
+        checked: baseline.size,
+        recorded: result.recorded,
+        changed: [],
+        added: [],
+        removed: [],
       }
     },
     reset() {
       baseline = undefined
       baselineAt = undefined
+      mode = 'memory'
+      warning = undefined
+      initialized = false
     },
   }
 }

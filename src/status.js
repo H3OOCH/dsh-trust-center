@@ -1,15 +1,19 @@
 /**
- * Read-only browser snapshot for the Trust Center panel.
+ * Browser snapshot and explicit baseline action.
  *
- * The route is loopback-only and GET-only. It contains bounded excerpts of
- * MCP/Skill text, so it is deliberately not exposed to the LAN or a remote
- * browser; the panel says so when the fetch is refused.
+ * The snapshot route is loopback-only and GET-only. The baseline route is
+ * loopback-only and POST-only; it is called only by an explicit UI action.
+ * Both routes contain bounded excerpts or hashes, so neither is exposed to the
+ * LAN or a remote browser.
  */
 
 import { scanHarness } from './scanner.js'
+import { fingerprintsFromContext } from './fingerprint.js'
 
 export const STATUS_PATH = '/plugins/dsh-trust-center/status'
+export const BASELINE_PATH = '/plugins/dsh-trust-center/baseline'
 const CACHE_TTL_MS = 15_000
+const MAX_BASELINE_BODY = 2_048
 
 let cache
 
@@ -39,6 +43,100 @@ export async function cachedStatus(ctx, { refresh = false, ttlMs = CACHE_TTL_MS,
 /** Explicit invalidation, used by tests and future change hooks. */
 export function invalidateStatus() {
   cache = undefined
+}
+
+/**
+ * Mount the explicit baseline write route. It is loopback-only and POST-only;
+ * the UI calls it only after an explicit "record/accept baseline" action.
+ * @param {object} ctx
+ * @param {{record: Function}|undefined} driftTracker
+ * @param {{read: Function, write: Function}|undefined} store
+ * @returns {void}
+ */
+export function registerBaselineRoute(ctx, driftTracker, store) {
+  ctx.inject(['webServer'], (webCtx) => {
+    webCtx.effect(() => {
+      const dispose = webCtx.webServer.register({
+        kind: 'exact',
+        path: BASELINE_PATH,
+        handler: createBaselineHandler(async () => {
+          if (store === undefined || driftTracker === undefined) {
+            throw httpError(503, 'Persistent baseline storage is not available for this profile.')
+          }
+          const fingerprints = fingerprintsFromContext(ctx)
+          const result = driftTracker.record(fingerprints)
+          invalidateStatus()
+          return result
+        }),
+      })
+      return () => dispose()
+    }, 'dsh-trust-center: baseline route')
+  })
+}
+
+/**
+ * Browser-facing handler for the explicit baseline action. Exported for tests.
+ * @param {() => Promise<Record<string, any>>} recordBaseline
+ * @returns {(req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => Promise<void>}
+ */
+export function createBaselineHandler(recordBaseline) {
+  return async function baselineHandler(req, res) {
+    if (!isLoopback(req)) {
+      send(res, 403, { error: 'Trust Center is available only from the local machine.' })
+      return
+    }
+    if (req?.method !== 'POST') {
+      send(res, 405, { error: 'method not allowed' })
+      return
+    }
+    const contentType = String(req?.headers?.['content-type'] ?? '').split(';', 1)[0].trim().toLowerCase()
+    if (contentType !== 'application/json') {
+      send(res, 415, { error: 'content-type must be application/json' })
+      return
+    }
+    if (String(req?.headers?.['x-trust-center-action'] ?? '') !== 'baseline') {
+      send(res, 400, { error: 'missing x-trust-center-action: baseline' })
+      return
+    }
+    try {
+      const body = await readBody(req, MAX_BASELINE_BODY)
+      let action
+      try {
+        action = JSON.parse(body)?.action
+      } catch {
+        throw httpError(400, 'invalid JSON body')
+      }
+      if (action !== 'record') throw httpError(400, 'action must be "record"')
+      const result = await recordBaseline()
+      send(res, 200, { ok: true, ...result })
+    } catch (error) {
+      send(res, error?.status ?? 500, { error: error instanceof Error ? error.message : String(error) })
+    }
+  }
+}
+
+function readBody(req, limit) {
+  return new Promise((resolve, reject) => {
+    const chunks = []
+    let size = 0
+    req.on('data', (chunk) => {
+      size += chunk.length
+      if (size > limit) {
+        reject(httpError(413, `request body exceeds ${limit} bytes`))
+        req.destroy?.()
+        return
+      }
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+    })
+    req.once('end', () => resolve(Buffer.concat(chunks).toString('utf8')))
+    req.once('error', reject)
+  })
+}
+
+function httpError(status, message) {
+  const error = new Error(message)
+  error.status = status
+  return error
 }
 
 /**

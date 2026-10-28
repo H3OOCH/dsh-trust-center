@@ -1,20 +1,24 @@
 # Tool fingerprint / drift baseline — design note
 
-Status: A (memory-only) is implemented in the working tree. B/C remain design
-only. This note records the feedback from Discussion #11209 and the decisions
-that need confirmation before the read-only boundary changes.
+Status: A and B (profile-scoped, explicit hash-only file) are implemented in the
+working tree. This note records the feedback from Discussion #11209 and the
+remaining decisions.
 
 ## Implementation status
 
 - A: `src/fingerprint.js` computes SHA-256 fingerprints; `scanHarness()` compares
   them with an in-memory tracker created by the Host plugin. The baseline is
   recorded on the first scan and kept for the lifetime of the Host process.
-  There are no file writes. The panel shows a drift notice; the agent report
-  and JSON include the drift object.
-- B: opt-in persistent baseline is not implemented.
-- C: host-provided storage has not been investigated yet.
-- Annotations are excluded from the trust identity and the report now states
-  that `readOnlyHint` / `destructiveHint` are server-declared claims.
+  There are no automatic file writes. The panel shows a drift notice; the agent
+  report and JSON include the drift object.
+- B: `src/baseline.js` implements the optional profile file at
+  `<DSH_PROFILE_DIR>/trust-center/baseline.json`. It is read on first observe;
+  only the explicit loopback POST action calls `record()`. The file is
+  hash-only and written atomically. The UI provides explicit record/accept
+  controls.
+- C: host-provided storage is still a future option.
+- Annotations are excluded from the trust identity and the report states that
+  `readOnlyHint` / `destructiveHint` are server-declared claims.
 
 ## Problem
 

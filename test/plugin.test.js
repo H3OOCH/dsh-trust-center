@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { apply, inject, name } from '../src/plugin.js'
-import { STATUS_PATH } from '../src/status.js'
+import { BASELINE_PATH, STATUS_PATH } from '../src/status.js'
 
 function makePluginContext({ withTools = true, withWebServer = true } = {}) {
   const routes = []
@@ -63,9 +63,9 @@ test('plugin manifest exports a loadable no-hard-dependency plugin', () => {
 test('plugin registers the loopback snapshot route and trust_scan tool', () => {
   const { ctx, routes, tools } = makePluginContext()
   apply(ctx)
-  assert.equal(routes.length, 1)
-  assert.equal(routes[0].path, STATUS_PATH)
-  assert.equal(routes[0].kind, 'exact')
+  assert.equal(routes.length, 2)
+  assert.equal(routes.find((route) => route.path === STATUS_PATH)?.kind, 'exact')
+  assert.equal(routes.find((route) => route.path === BASELINE_PATH)?.kind, 'exact')
   assert.equal(tools.length, 1)
   assert.equal(tools[0].name, 'trust_scan')
   assert.equal(tools[0].output.schema.type, 'string')
