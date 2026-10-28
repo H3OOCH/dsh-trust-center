@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 — 2026-10-28
+
+- Fix npm README/install metadata after the 0.2.0 release;
+- Retry the registry verification step to tolerate npm publish propagation delay;
+- No runtime behavior changes.
+
 ## 0.2.0 — 2026-10-28
 
 ### Added

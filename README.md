@@ -32,22 +32,26 @@ Trust Center 把这些信号变成可读、可截图、可导出的证据列表�
 
 ## 安装
 
-从 npm 安装当前正式版（0.1.0）：
+从 npm 安装当前正式版（0.2.1）：
 
 ```bash
 dsh plugin --profile web add dsh-trust-center
 ```
 
-> npm 最新仍是 **0.1.0**；本 README 中的 tool fingerprint / baseline 功能目前在
-> GitHub `main`，版本为 **0.2.0（尚未发布到 npm）**。想先使用这些功能，请从 GitHub 安装：
+固定版本：
 
 ```bash
-dsh plugin --profile web add github:H3OOCH/dsh-trust-center
+dsh plugin --profile web add dsh-trust-center@0.2.1
 ```
 
-`v0.1.0` tag 是旧的 npm 对应版本，不包含 drift / baseline，不要把它当成最新功能。
+如果 npm 不可用，也可以从 GitHub 安装同一版本：
 
-> npm 上存在一个 `0.0.0-stage` 占位版本，但 `latest` 已经是 0.1.0；正常安装会拿到正式版本。不要手工指定 `@0.0.0-stage`。
+```bash
+dsh plugin --profile web add github:H3OOCH/dsh-trust-center#v0.2.1
+```
+
+> npm `latest` 是 **0.2.1**，包含 tool fingerprint / drift / 可选 baseline。
+> 旧的 `0.0.0-stage` 是已弃用占位版本，不要手工指定。
 
 重启 DSH Web，左侧栏会出现 **信任中心 / Trust Center** 图标。
 
