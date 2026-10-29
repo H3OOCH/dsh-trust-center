@@ -3,6 +3,7 @@
 [![CI](https://github.com/H3OOCH/dsh-trust-center/actions/workflows/ci.yml/badge.svg)](https://github.com/H3OOCH/dsh-trust-center/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/dsh-trust-center.svg)](https://www.npmjs.com/package/dsh-trust-center)
 [![dshfind](https://dshfind.com/api/badge/H3OOCH/dsh-trust-center?lang=zh)](https://dshfind.com/zh/plugins/H3OOCH/dsh-trust-center)
+[![dshbase listed](https://dshbase.com/badges/dsh-trust-center.svg)](https://dshbase.com/plugins/dsh-trust-center/)
 
 **审计模型即将信任的外部文本：MCP 工具与 Skills。**
 
@@ -200,6 +201,8 @@ node scripts/check.js
 - [合成 MCP 案例](docs/case-study.md)
 - [测试用 MCP 建议](docs/testing-mcp.md)
 - [维护清单](docs/maintenance.md)
+- [dshbase 收录页](https://dshbase.com/plugins/dsh-trust-center/)
+- [dshfind 收录页](https://dshfind.com/zh/plugins/H3OOCH/dsh-trust-center)
 - [贡献指南](CONTRIBUTING.md)
 - [安全问题](SECURITY.md)
 - [Issues / 讨论](https://github.com/H3OOCH/dsh-trust-center/issues)
