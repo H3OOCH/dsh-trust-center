@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    # 12:00 Asia/Shanghai on the 13th of each month.
+    - cron: '0 4 13 * *'
   workflow_dispatch:
 
 permissions:
