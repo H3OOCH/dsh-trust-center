@@ -199,6 +199,7 @@ node scripts/check.js
 - [规则目录](docs/rules.md)
 - [合成 MCP 案例](docs/case-study.md)
 - [测试用 MCP 建议](docs/testing-mcp.md)
+- [维护清单](docs/maintenance.md)
 - [贡献指南](CONTRIBUTING.md)
 - [安全问题](SECURITY.md)
 - [Issues / 讨论](https://github.com/H3OOCH/dsh-trust-center/issues)
