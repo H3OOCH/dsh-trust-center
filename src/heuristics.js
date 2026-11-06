@@ -296,7 +296,7 @@ const COMMAND_PATTERNS = Object.freeze([
 ])
 
 const CREDENTIAL_PATTERNS = Object.freeze([
-  /(?:^|[\\/\s'"`])(?:\.env|\.ssh|id_rsa|id_ed25519|credentials|auth\.json)(?:$|[\\/\s'"`])/gi,
+  /(?:^|[\\/\s'"`])(?:\.env|\.ssh|id_rsa|id_ed25519|credentials|auth\.json|\.npmrc|\.kube[\\/]config|\.aws[\\/]credentials)(?:$|[\\/\s'"`])/gi,
   /\b(?:api[\s_-]?key|access[\s_-]?token|refresh[\s_-]?token|client[\s_-]?secret|password|passwd)\b/gi,
   /(?:密钥|令牌|密码|凭据|私钥)/gu,
 ])
@@ -364,6 +364,26 @@ export function detectCapabilities(name, description) {
  * }} input
  * @returns {Array<Record<string, any>>}
  */
+/** 只用于工具名：是否命中提示注入模式 */
+function scanPromptText(text) {
+  const source = String(text ?? '').replace(/[_-]+/g, ' ')
+  if (source.length === 0) return false
+  return PROMPT_PATTERNS.some((pattern) => {
+    pattern.regex.lastIndex = 0
+    return pattern.regex.test(source)
+  })
+}
+
+/** 匹配片段是否处在"引用/举例"语境里（正常文档引用攻击短语不该报） */
+function isQuotedExample(source, index, length) {
+  const before = source.slice(Math.max(0, index - 2), index)
+  const after = source.slice(index + length, index + length + 2)
+  const quoted = /["'\u201c\u201d\u2018\u2019]/.test(before) || /["'\u201c\u201d\u2018\u2019]/.test(after)
+  if (!quoted) return false
+  const window = source.slice(Math.max(0, index - 120), index + length + 120)
+  return /example|e\.g\.|for instance|as examples|示例|举例|引用/i.test(window)
+}
+
 export function scanField(input) {
   const {
     text,
@@ -385,7 +405,9 @@ export function scanField(input) {
     pattern.regex.lastIndex = 0
     let match
     while ((match = pattern.regex.exec(source)) !== null && evidence.length < 2) {
-      evidence.push(evidenceAt(source, match.index, field, input.lineBase))
+      if (!isQuotedExample(source, match.index, match[0].length)) {
+        evidence.push(evidenceAt(source, match.index, field, input.lineBase))
+      }
       if (match[0].length === 0) pattern.regex.lastIndex += 1
     }
     if (evidence.length > 0) {
@@ -480,7 +502,7 @@ export function scanMcpTool(schema, index = 0) {
   const name = String(schema?.name ?? '')
   const identity = parseMcpToolName(name) ?? { server: 'unknown', rawName: name }
   const description = typeof schema?.description === 'string' ? schema.description : ''
-  const parameters = schema?.parameters ?? {}
+  const parameters = schema?.parameters ?? schema?.inputSchema ?? {}
   const parameterText = safeStringify(parameters)
   const bytes = utf8Bytes(parameterText) + utf8Bytes(description)
   const tokens = estimateTokens(description) + estimateTokens(parameterText)
@@ -498,6 +520,8 @@ export function scanMcpTool(schema, index = 0) {
       ...base,
       text: description,
       field: 'description',
+      scanCommands: true,
+      scanCredentials: true,
     }),
     ...scanSchemaStrings(parameters, base),
   ]
@@ -516,6 +540,16 @@ export function scanMcpTool(schema, index = 0) {
       }],
     }))
   }
+  if (scanPromptText(name)) {
+    findings.push(makeFinding({
+      ...base,
+      rule: 'prompt-injection-override',
+      field: 'name',
+      severity: 'high',
+      evidence: [{ field: 'name', offset: 0, snippet: truncate(name, 120) }],
+    }))
+  }
+
   if (parameterText.length > OVERSIZED_SCHEMA) {
     findings.push(makeFinding({
       ...base,
@@ -746,6 +780,8 @@ function scanSchemaStrings(parameters, base) {
       ...base,
       text: item.text,
       field: item.path,
+      scanCommands: true,
+      scanCredentials: true,
     }))
   }
   return findings
@@ -872,11 +908,16 @@ function classifyInvisible(codePoint) {
 
 function findEncodedPayload(text) {
   const source = String(text ?? '')
-  const pattern = /[A-Za-z0-9+/]{400,}={0,2}/g
+  const pattern = /[A-Za-z0-9+/]{40,}={0,2}/g
   let match
   while ((match = pattern.exec(source)) !== null) {
     const around = source.slice(Math.max(0, match.index - 120), match.index + match[0].length + 120)
     if (/\b(?:base64|atob|decode|decrypt|execute|exec|eval|payload)\b/i.test(around)) return match.index
+    // 解码看一眼：内容里出现指令/凭据词，就不再要求附近有 decode 字样
+    try {
+      const decoded = atob(match[0].replace(/-/g, '+').replace(/_/g, '/'))
+      if (containsInstruction(decoded) || containsCredentialAccess(decoded) || /\\b(?:curl|wget|powershell|bash|sh|nc|python)\\b/i.test(decoded)) return match.index
+    } catch { /* 不是合法 base64，忽略 */ }
   }
   return undefined
 }
@@ -921,9 +962,17 @@ function isBroadSchema(parameters) {
     && typeof parameters.properties === 'object'
     && !Array.isArray(parameters.properties)
     && Object.keys(parameters.properties).length > 0
-  if (hasProperties) return false
   const keys = Object.keys(parameters)
-  return parameters.additionalProperties === true || keys.length === 0
+  if (parameters.additionalProperties === true && keys.length === 0) return true
+  if (!hasProperties) return parameters.additionalProperties === true || keys.length === 0
+  // 有 properties 但形同虚设：根级或任一属性允许任意附加字段 / 枚举大到等于没有约束
+  if (parameters.additionalProperties === true) return true
+  for (const value of Object.values(parameters.properties)) {
+    if (value === null || typeof value !== 'object') continue
+    if (value.additionalProperties === true) return true
+    if (Array.isArray(value.enum) && value.enum.length >= 10) return true
+  }
+  return false
 }
 
 function safeStringify(value) {

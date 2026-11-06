@@ -210,3 +210,34 @@ node scripts/check.js
 ## License
 
 MIT
+
+---
+
+## 用公开语料打分（可复现）
+
+检测规则的效果不该靠感觉。这里用公开语料 [mcp-poison-corpus](https://github.com/H3OOCH/mcp-poison-corpus)
+（16 条样本：13 正 / 3 负）实测本插件：
+
+```bash
+# 在 corpus 仓库内
+python tools/score.py --scanner "node tools/adapters/trust-center.mjs {sample}"
+```
+
+结果（0.2.1，2026-11-06）：
+
+| 指标 | 数值 |
+|---|---|
+| 样本级检出率 | 53.8% |
+| 信号级召回 | 52.9%（9 / 17） |
+| 负样本误报率 | 66.7%（2 / 3） |
+
+**已知缺口**（欢迎 PR）：
+
+- 不检测 base64 编码载荷
+- 凭据规则要求"动作动词 + 敏感路径"同现，且路径表缺 `~/.npmrc`、`~/.kube/config`
+- `isBroadSchema` 未覆盖 "additionalProperties 全开 + 超大枚举"
+- 只扫描述与 schema，不扫工具名
+- 两处误报：文档**引用**注入短语；正文出现 "system prompt" 就判 role 注入
+- 字段名：内部读 `parameters`，MCP `tools/list` 用的是 `inputSchema`（按规范接入会读空）
+
+> 数字低不是缺陷，是**基线**。没量过之前，谁都不知道它在哪漏。
