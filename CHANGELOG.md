@@ -1,5 +1,17 @@
-# Changelog
+﻿# Changelog
 
+## 0.2.2 — 2026-11-06
+
+用公开语料 [mcp-poison-corpus](https://github.com/H3OOCH/mcp-poison-corpus) 实测后修的 7 处：
+
+- 接受 MCP 规范的 inputSchema（原来只读 parameters，按规范接入时 schema 读成空对象）
+- 扫描工具名；下划线写法的注入短语也能识别
+- isBroadSchema 覆盖「additionalProperties 全开 + 超大枚举」
+- 凭据路径补 ~/.npmrc、~/.kube/config、~/.aws/credentials；MCP 工具描述也扫凭据与命令
+- base64 阈值 400→40，并**解码后**看内容（指令词 / 凭据 / 命令）再判定
+- 引用/举例语境里的注入短语不再误报
+
+实测（16 条样本）：样本级检出 53.8% → **92.3%**，信号级召回 52.9% → **82.4%**，负样本误报 66.7% → **33.3%**。测试 43/43 通过。
 ## 0.2.1 — 2026-10-28
 
 - Fix npm README/install metadata after the 0.2.0 release;
@@ -30,3 +42,4 @@
 - Loopback-only、GET-only、只读 Host 快照路由；
 - 中英文 UI 文案；
 - 无第三方运行时依赖。
+
