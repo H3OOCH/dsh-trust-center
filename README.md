@@ -35,7 +35,7 @@ Trust Center 把这些信号变成可读、可截图、可导出的证据列表�
 
 ## 安装
 
-从 npm 安装当前正式版（0.2.1）：
+从 npm 安装当前正式版（0.2.2）：
 
 ```bash
 dsh plugin --profile web add dsh-trust-center
@@ -44,16 +44,16 @@ dsh plugin --profile web add dsh-trust-center
 固定版本：
 
 ```bash
-dsh plugin --profile web add dsh-trust-center@0.2.1
+dsh plugin --profile web add dsh-trust-center@0.2.2
 ```
 
 如果 npm 不可用，也可以从 GitHub 安装同一版本：
 
 ```bash
-dsh plugin --profile web add github:H3OOCH/dsh-trust-center#v0.2.1
+dsh plugin --profile web add github:H3OOCH/dsh-trust-center#v0.2.2
 ```
 
-> npm `latest` 是 **0.2.1**，包含 tool fingerprint / drift / 可选 baseline。
+> npm `latest` 是 **0.2.2**，包含 tool fingerprint / drift / 可选 baseline。
 > 旧的 `0.0.0-stage` 是已弃用占位版本，不要手工指定。
 
 重启 DSH Web，左侧栏会出现 **信任中心 / Trust Center** 图标。
@@ -223,7 +223,7 @@ MIT
 python tools/score.py --scanner "node tools/adapters/trust-center.mjs {sample}"
 ```
 
-结果（0.2.1，2026-11-06）：
+结果（0.2.2，2026-11-06）：
 
 | 指标 | 数值 |
 |---|---|
