@@ -4,6 +4,7 @@
 [![npm](https://img.shields.io/npm/v/dsh-trust-center.svg)](https://www.npmjs.com/package/dsh-trust-center)
 [![dshfind](https://dshfind.com/api/badge/H3OOCH/dsh-trust-center?lang=zh)](https://dshfind.com/zh/plugins/H3OOCH/dsh-trust-center)
 [![dshbase listed](https://dshbase.com/badges/dsh-trust-center.svg)](https://dshbase.com/plugins/dsh-trust-center/)
+[![M8ven Score](https://m8ven.ai/badge/mcp/h3ooch/dsh-trust-center)](https://m8ven.ai/mcp/h3ooch/dsh-trust-center?s=readme)
 
 **审计模型即将信任的外部文本：MCP 工具与 Skills。**
 
